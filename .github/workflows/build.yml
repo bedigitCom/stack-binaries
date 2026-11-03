@@ -1,0 +1,65 @@
+name: Build a component
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipe:
+        description: Which component to build
+        required: true
+        type: choice
+        options: [nginx, apache]
+      publish:
+        description: Publish a release when every platform succeeds
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ inputs.recipe }} on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # Ubuntu 22.04 sets the glibc baseline: these builds run on that release or newer.
+        runner: [macos-15-intel, macos-15, ubuntu-22.04, ubuntu-22.04-arm]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build
+        run: ./recipes/build-${{ inputs.recipe }}.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.recipe }}-${{ matrix.runner }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    needs: build
+    if: inputs.publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RECIPE: ${{ inputs.recipe }}
+        run: |
+          source recipes/versions.env
+          case "$RECIPE" in
+            nginx) version="$NGINX_VERSION" ;;
+            apache) version="$HTTPD_VERSION" ;;
+          esac
+          gh release create "$RECIPE-$version" dist/* \
+            --title "$RECIPE $version" \
+            --notes "Built from recipes/versions.env at $GITHUB_SHA. Licenses are inside each archive."
