@@ -7,7 +7,11 @@ on:
         description: Which component to build
         required: true
         type: choice
-        options: [nginx, apache]
+        options: [nginx, apache, mariadb]
+      series:
+        description: The MariaDB series to build, such as 11.8. Other recipes ignore it
+        required: false
+        type: string
       publish:
         description: Publish a release when every platform succeeds
         required: true
@@ -19,21 +23,29 @@ permissions:
 
 jobs:
   build:
-    name: ${{ inputs.recipe }} on ${{ matrix.runner }}
+    name: ${{ inputs.recipe }} ${{ inputs.series }} on ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
+    timeout-minutes: ${{ inputs.recipe == 'mariadb' && 240 || 60 }}
     strategy:
       fail-fast: false
       matrix:
         # Ubuntu 22.04 sets the glibc baseline: these builds run on that release or newer.
-        runner: [macos-15-intel, macos-15, ubuntu-22.04, ubuntu-22.04-arm]
+        # MariaDB publishes its own Linux builds, so only macOS needs ours.
+        runner: ${{ fromJSON(inputs.recipe == 'mariadb' && '["macos-15-intel","macos-15"]' || '["macos-15-intel","macos-15","ubuntu-22.04","ubuntu-22.04-arm"]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install build tools
+        if: inputs.recipe == 'mariadb'
+        run: |
+          brew install bison
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
       - name: Build
-        run: ./recipes/build-${{ inputs.recipe }}.sh
+        env:
+          SERIES: ${{ inputs.series }}
+        run: ./recipes/build-${{ inputs.recipe }}.sh $SERIES
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ${{ inputs.recipe }}-${{ matrix.runner }}
+          name: ${{ inputs.recipe }}-${{ inputs.series }}-${{ matrix.runner }}
           path: dist/*
           if-no-files-found: error
 
@@ -54,11 +66,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RECIPE: ${{ inputs.recipe }}
+          SERIES: ${{ inputs.series }}
         run: |
           source recipes/versions.env
           case "$RECIPE" in
             nginx) version="$NGINX_VERSION" ;;
             apache) version="$HTTPD_VERSION" ;;
+            mariadb)
+              version_var="MARIADB_${SERIES//./_}_VERSION"
+              version="${!version_var}"
+              ;;
           esac
           gh release create "$RECIPE-$version" dist/* \
             --title "$RECIPE $version" \
