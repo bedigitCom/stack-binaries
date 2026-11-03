@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds MariaDB server and clients for one LTS series, for example: build-mariadb.sh 11.8
-# OpenSSL and zlib are linked statically. Plugins that need more libraries are left out.
+# OpenSSL and zlib are linked statically, and the client uses macOS's own libedit. Plugins that need
+# more libraries are left out.
 source "$(dirname "$0")/lib.sh"
 
 SERIES="${1:?Pass a MariaDB series, for example 11.8}"
@@ -32,7 +33,6 @@ cmake -S "$WORK/src" -B "$WORK/out" \
   -DWITH_ZLIB=bundled \
   -DWITH_PCRE=bundled \
   -DWITH_LIBFMT=bundled \
-  -DWITH_READLINE=ON \
   -DWITH_UNIT_TESTS=OFF \
   -DWITH_EMBEDDED_SERVER=OFF \
   -DWITH_WSREP=OFF \
