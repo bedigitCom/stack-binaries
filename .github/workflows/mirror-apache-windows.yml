@@ -1,0 +1,52 @@
+name: Mirror Apache for Windows
+
+# Publishes an unmodified copy of the Apache Lounge build, so downloads don't depend on, or add load
+# to, its server. Stops unless the file matches the checksum and signing key in versions.env.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          source recipes/versions.env
+          name="httpd-$APACHE_LOUNGE_BUILD-Win64-VS18.zip"
+          base="https://www.apachelounge.com/download/VS18/binaries/$name"
+          mkdir dist
+          for file in "$name" "$name.txt" "$name.asc"; do
+            curl --fail --location --silent --show-error --retry 3 --output "dist/$file" "${base%"$name"}$file"
+          done
+          curl --fail --location --silent --show-error --retry 3 --output key.asc \
+            https://www.apachelounge.com/download/Steffen_Land.asc
+
+          echo "$APACHE_LOUNGE_SHA256  dist/$name" | sha256sum --check
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          mkdir -m 700 "$GNUPGHOME"
+          gpg --batch --import key.asc
+          gpg --batch --status-fd 1 --verify "dist/$name.asc" "dist/$name" | grep "VALIDSIG $APACHE_LOUNGE_KEY"
+
+          cat > notes.md <<NOTES
+          An unmodified copy of the Apache Lounge Windows build of Apache httpd ($APACHE_LOUNGE_BUILD, Win64, VS18), kept here so BeDigit Stack's downloads don't depend on, or add load to, the Apache Lounge server. This isn't our own build.
+
+          - **Original:** https://www.apachelounge.com/download/
+          - **SHA-256:** \`$APACHE_LOUNGE_SHA256\`, which matches the published checksum file included here
+          - **Signature:** the \`.asc\` file is Apache Lounge's own PGP signature, from key \`$APACHE_LOUNGE_KEY\`
+          - **License:** Apache License 2.0. \`Apache24/LICENSE.txt\` and \`Apache24/NOTICE.txt\` are inside the zip
+          - **Needs:** the latest Microsoft Visual C++ Redistributable (x64)
+
+          Apache HTTP Server and Apache are trademarks of The Apache Software Foundation. Neither the foundation nor Apache Lounge is affiliated with this copy or endorses it. Please support Apache Lounge if you find its builds useful.
+          NOTES
+
+          gh release create "apache-lounge-$APACHE_LOUNGE_BUILD" dist/* \
+            --target "$GITHUB_SHA" \
+            --latest=false \
+            --title "Apache httpd for Windows $APACHE_LOUNGE_BUILD (Apache Lounge build, mirror)" \
+            --notes-file notes.md

@@ -10,6 +10,8 @@ Self-contained builds of open-source servers, used by [BeDigit Stack](https://be
 | Redis | AGPL-3.0 (one of the three licenses it offers) | Its own vendored libraries, without its optional modules |
 | Valkey | BSD-3-Clause | Its own vendored libraries |
 
+Apache httpd for Windows isn't built here. Its release is an unmodified copy of the [Apache Lounge](https://www.apachelounge.com/download/) build, along with its checksums and signature, published by the **Mirror Apache for Windows** workflow. That workflow refuses a file that doesn't match the checksum and signing key pinned in `recipes/versions.env`.
+
 Each archive includes the license of everything inside it, in `licenses/`.
 
 ## Platforms
