@@ -116,6 +116,11 @@ build_key_value_store() {
   for license in "$@"; do
     cp "$work/src/$license" "$stage/licenses/$name-$license"
   done
+  local dep_license dep
+  while IFS= read -r dep_license; do
+    dep="$(basename "$(dirname "$dep_license")")"
+    cp "$dep_license" "$stage/licenses/$dep-$(basename "$dep_license")"
+  done < <(find "$work/src/deps" -mindepth 2 -maxdepth 2 \( -name 'COPYING*' -o -name 'COPYRIGHT*' -o -name 'LICENSE*' \))
 
   # Runs from a folder with a space, as macOS's Application Support is.
   local smoke="$work/smoke test" port=18996 result=""
