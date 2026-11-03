@@ -104,7 +104,7 @@ build_key_value_store() {
   local work="$ROOT/build/$name"
   rm -rf "$work"
   fetch_source "$url" "$sha256" "$work/src"
-  make -C "$work/src" -j"$JOBS" BUILD_TLS=no USE_SYSTEMD=no
+  make -C "$work/src" -j"$JOBS" BUILD_TLS=no USE_SYSTEMD=no BUILD_WITH_MODULES=no
 
   local stage="$work/stage"
   mkdir -p "$stage/bin" "$stage/licenses"
