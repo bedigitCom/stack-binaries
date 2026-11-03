@@ -7,7 +7,7 @@ on:
         description: Which component to build
         required: true
         type: choice
-        options: [nginx, apache, mariadb]
+        options: [nginx, apache, mariadb, redis, valkey]
       series:
         description: The MariaDB series to build, such as 11.8. Other recipes ignore it
         required: false
@@ -73,6 +73,8 @@ jobs:
           case "$RECIPE" in
             nginx) version="$NGINX_VERSION" ;;
             apache) version="$HTTPD_VERSION" ;;
+            redis) version="$REDIS_VERSION" ;;
+            valkey) version="$VALKEY_VERSION" ;;
             mariadb)
               version_var="MARIADB_${SERIES//./_}_VERSION"
               version="${!version_var}"

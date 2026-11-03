@@ -7,6 +7,8 @@ Self-contained builds of open-source servers, used by [BeDigit Stack](https://be
 | Nginx | BSD-2-Clause | PCRE2, zlib, OpenSSL |
 | Apache httpd | Apache-2.0 | APR, APR-util, PCRE2, zlib, Expat, OpenSSL |
 | MariaDB 12.3, 11.8, 11.4, 10.11 | GPL-2.0 | OpenSSL, zlib, PCRE2 |
+| Redis | AGPL-3.0 (chosen from its three licenses) | Its own vendored libraries |
+| Valkey | BSD-3-Clause | Its own vendored libraries |
 
 Each archive includes the license of everything inside it, in `licenses/`.
 
