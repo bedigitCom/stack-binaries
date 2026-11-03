@@ -1,0 +1,60 @@
+name: Publish a MariaDB build
+
+# Publishes the exact archives a finished build run produced, so what was tested is what ships. The
+# source goes in the same release, because MariaDB is licensed under the GPL.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: The finished "Build a component" run to publish
+        required: true
+        type: string
+      series:
+        description: The MariaDB series that run built, such as 11.8
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+          SERIES: ${{ inputs.series }}
+        run: |
+          source recipes/versions.env
+          version_var="MARIADB_${SERIES//./_}_VERSION"
+          sha_var="MARIADB_${SERIES//./_}_SHA256"
+          version="${!version_var:?Unknown series}"
+          source_sha="${!sha_var}"
+          commit="$(gh run view "$RUN_ID" --json headSha --jq .headSha)"
+
+          gh run download "$RUN_ID" --dir artifacts
+          mkdir dist
+          find artifacts -type f -exec mv {} dist/ \;
+          for platform in darwin-x86_64 darwin-aarch64; do
+            archive="mariadb-$version-$platform.tar.gz"
+            test -f "dist/$archive"
+            test "$(sha256sum "dist/$archive" | cut -d' ' -f1)" = "$(cat "dist/$archive.sha256")"
+          done
+          test "$(find dist -type f | wc -l)" -eq 4
+
+          source_file="mariadb-$version.tar.gz"
+          curl --fail --location --silent --show-error --retry 3 --output "dist/$source_file" \
+            "https://archive.mariadb.org/mariadb-$version/source/$source_file"
+          echo "$source_sha  dist/$source_file" | sha256sum --check
+
+          gh release create "mariadb-$version" dist/* \
+            --target "$commit" \
+            --latest=false \
+            --title "MariaDB $version" \
+            --notes "MariaDB $version for macOS, built by \`recipes/build-mariadb.sh\` at $commit in run $RUN_ID.
+
+          MariaDB is licensed under the GPL, version 2. \`$source_file\` is the unmodified source of these builds. Licenses are inside each archive."
