@@ -95,11 +95,12 @@ finish_binary() {
   fi
 }
 
-# build_key_value_store <name> <server> <client> <version> <url> <sha256> <license file>: Redis and
+# build_key_value_store <name> <server> <client> <version> <url> <sha256> <license files...>: Redis and
 # Valkey share a build system. TLS is off, since they only listen on loopback, so nothing is linked
 # from outside. The smoke test proves data survives a restart, not just that the server answers.
 build_key_value_store() {
-  local name="$1" server="$2" client="$3" version="$4" url="$5" sha256="$6" license="$7"
+  local name="$1" server="$2" client="$3" version="$4" url="$5" sha256="$6"
+  shift 6
   local work="$ROOT/build/$name"
   rm -rf "$work"
   fetch_source "$url" "$sha256" "$work/src"
@@ -112,7 +113,9 @@ build_key_value_store() {
     finish_binary "$binary"
     assert_portable "$binary"
   done
-  cp "$work/src/$license" "$stage/licenses/$name.txt"
+  for license in "$@"; do
+    cp "$work/src/$license" "$stage/licenses/$name-$license"
+  done
 
   # Runs from a folder with a space, as macOS's Application Support is.
   local smoke="$work/smoke test" port=18996 result=""
