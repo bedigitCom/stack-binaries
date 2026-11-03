@@ -67,6 +67,23 @@ assert_portable() {
   echo "Portable: $binary"
 }
 
+# expect_response <pid> <port> <path> <expected body>: fails unless the running server answers.
+# Printing a version proves little: a server can do that and still refuse to start.
+expect_response() {
+  local pid="$1" port="$2" path="$3" expected="$4" body=""
+  for _ in $(seq 1 50); do
+    kill -0 "$pid" 2>/dev/null || { echo "The server exited during the smoke test" >&2; return 1; }
+    body="$(curl --silent --max-time 2 "http://127.0.0.1:$port$path" || true)"
+    if [[ "$body" == "$expected" ]]; then
+      echo "Smoke test passed: $path returned \"$body\""
+      return 0
+    fi
+    sleep 0.2
+  done
+  echo "Smoke test failed: expected \"$expected\" from $path, got \"$body\"" >&2
+  return 1
+}
+
 # finish_binary <binary>: strips symbols, and re-signs on macOS, which stripping invalidates.
 finish_binary() {
   local binary="$1"

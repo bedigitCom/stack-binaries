@@ -50,4 +50,28 @@ cp "$WORK/zlib/LICENSE" "$STAGE/licenses/zlib.txt"
 cp "$WORK/openssl/LICENSE.txt" "$STAGE/licenses/openssl.txt"
 
 env -i "$STAGE/nginx" -V
+
+# Runs from a folder with a space, as macOS's Application Support is.
+SMOKE="$WORK/smoke test"
+mkdir -p "$SMOKE"
+cat > "$SMOKE/nginx.conf" <<CONF
+daemon off;
+pid "$SMOKE/nginx.pid";
+events { worker_connections 64; }
+http {
+  access_log off;
+  server {
+    listen 127.0.0.1:18999;
+    location = /smoke { default_type text/plain; return 200 "ok"; }
+  }
+}
+CONF
+env -i "$STAGE/nginx" -p "$SMOKE/" -c "$SMOKE/nginx.conf" -e stderr &
+SERVER=$!
+trap 'kill "$SERVER" 2>/dev/null || true' EXIT
+expect_response "$SERVER" 18999 /smoke ok
+kill "$SERVER"
+wait "$SERVER" || true
+trap - EXIT
+
 package nginx "$NGINX_VERSION" "$STAGE"
