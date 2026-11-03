@@ -104,7 +104,8 @@ build_key_value_store() {
   local work="$ROOT/build/$name"
   rm -rf "$work"
   fetch_source "$url" "$sha256" "$work/src"
-  make -C "$work/src" -j"$JOBS" BUILD_TLS=no USE_SYSTEMD=no BUILD_WITH_MODULES=no
+  # Built from src/, because Redis's top-level Makefile also builds its optional modules.
+  make -C "$work/src/src" -j"$JOBS" BUILD_TLS=no USE_SYSTEMD=no
 
   local stage="$work/stage"
   mkdir -p "$stage/bin" "$stage/licenses"
