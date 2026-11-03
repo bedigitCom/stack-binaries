@@ -64,7 +64,7 @@ jobs:
               platforms="darwin-x86_64 darwin-aarch64 linux-x86_64 linux-aarch64"
               ;;
           esac
-          commit="$(gh run view "$RUN_ID" --json headSha --jq .headSha)"
+          built_from="$(gh run view "$RUN_ID" --json headSha --jq .headSha)"
 
           gh run download "$RUN_ID" --dir artifacts
           mkdir dist
@@ -82,10 +82,12 @@ jobs:
           curl --fail --location --silent --show-error --retry 3 --output "dist/$source_file" "$source_url"
           echo "$source_sha  dist/$source_file" | sha256sum --check
 
+          # The tag goes on this commit: GitHub refuses a workflow token a tag on an older commit if
+          # its workflow files differ. The notes name the commit the build really came from.
           gh release create "$RECIPE-$version" dist/* \
-            --target "$commit" \
+            --target "$GITHUB_SHA" \
             --latest=false \
             --title "$title $version" \
-            --notes "$title $version, built by the recipes in this repository at $commit in run $RUN_ID.
+            --notes "$title $version, built by the recipes in this repository at $built_from in run $RUN_ID.
 
           $license \`$source_file\` is the unmodified source of these builds. Licenses are inside each archive."
