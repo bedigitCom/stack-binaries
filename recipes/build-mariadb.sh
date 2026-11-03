@@ -49,7 +49,7 @@ cmake -S "$WORK/src" -B "$WORK/out" \
   -DPLUGIN_HASHICORP_KEY_MANAGEMENT=NO -DPLUGIN_AWS_KEY_MANAGEMENT=NO \
   -DPLUGIN_PROVIDER_BZIP2=NO -DPLUGIN_PROVIDER_LZ4=NO -DPLUGIN_PROVIDER_LZMA=NO \
   -DPLUGIN_PROVIDER_LZO=NO -DPLUGIN_PROVIDER_SNAPPY=NO \
-  -DCLIENT_PLUGIN_AUTH_GSSAPI_CLIENT=OFF \
+  -DCLIENT_PLUGIN_AUTH_GSSAPI_CLIENT=OFF -DCLIENT_PLUGIN_ZSTD=OFF \
   -DINSTALL_MYSQLTESTDIR= -DINSTALL_SQLBENCHDIR=
 cmake --build "$WORK/out" --parallel "$JOBS"
 
@@ -67,6 +67,8 @@ cp -R "$INSTALLED/share" "$STAGE/share"
 rm -rf "$STAGE/share/man" "$STAGE/share/doc" "$STAGE/share/info"
 mkdir -p "$STAGE/lib"
 cp -R "$INSTALLED/lib/plugin" "$STAGE/lib/plugin"
+# Only MariaDB's own test suite uses these.
+rm -f "$STAGE"/lib/plugin/{adt_null,auth_0x0100,auth_test_plugin,daemon_example,debug_key_management,dialog_examples,example_key_management,func_test,ha_example,ha_test_sql_discovery,handlersocket,libdaemon_example,mypluglib,qa_auth_client,qa_auth_interface,qa_auth_server,test_sql_service,test_versioning,type_test}.so "$STAGE"/lib/plugin/daemon_example.ini
 
 for binary in "$STAGE"/bin/*; do
   finish_binary "$binary"
