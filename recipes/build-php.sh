@@ -42,9 +42,28 @@ if [[ "$MINOR" == "8.1" && "$PLATFORM" == linux-* ]]; then
   sed -i 's/-std=c17/-std=gnu17/' src/SPC/builder/extension/pgsql.php
 fi
 
-# On Intel Macs, the newer compiler refuses the old-style C in PHP 8.1's bcmath.
+# On Intel Macs, the newer compiler refuses the old-style C in PHP 8.1's bcmath. static-php-cli has no
+# setting for one extension's flags, except through a class of its own, as its pgsql has.
 if [[ "$MINOR" == "8.1" && "$PLATFORM" == "darwin-x86_64" ]]; then
-  sed -i '' 's/-apple-darwin -Os"/-apple-darwin -Os -std=gnu17"/' config/env.ini
+  cat > src/SPC/builder/extension/bcmath.php <<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace SPC\builder\extension;
+
+use SPC\builder\Extension;
+use SPC\util\CustomExt;
+
+#[CustomExt('bcmath')]
+class bcmath extends Extension
+{
+    protected function getExtraEnv(): array
+    {
+        return ['CFLAGS' => '-std=gnu17'];
+    }
+}
+PHP
 fi
 
 started=$SECONDS
