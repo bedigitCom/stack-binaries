@@ -1,0 +1,90 @@
+name: Build PHP
+
+# Builds each version on every platform, checks it, and adds it to a draft release. Drafts aren't
+# public: publishing one is a separate step, for the owner to approve.
+on:
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: 'A JSON list of exact versions, such as ["8.4.27"]'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  drafts:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Make a draft release for each version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSIONS: ${{ inputs.versions }}
+        run: |
+          for version in $(jq -r '.[]' <<<"$VERSIONS"); do
+            if ! gh release view "php-$version" > /dev/null 2>&1; then
+              gh release create "php-$version" --draft --title "PHP $version" \
+                --notes "Built by static-php-cli from recipes/build-php.sh at $GITHUB_SHA. Licenses are inside each archive, and the source of everything inside is in this release."
+            fi
+          done
+
+  build:
+    name: PHP ${{ matrix.version }} on ${{ matrix.runner }}
+    needs: drafts
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ${{ fromJSON(inputs.versions) }}
+        # Apple Silicon builds use macOS 14, because GitHub often leaves macos-15 jobs unassigned.
+        runner: [macos-15-intel, macos-14, ubuntu-22.04, ubuntu-22.04-arm]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VERSION: ${{ matrix.version }}
+          WITH_SOURCES: ${{ matrix.runner == 'ubuntu-22.04' && 'yes' || 'no' }}
+        run: ./recipes/build-php.sh "$VERSION"
+      - name: Check on macOS
+        if: runner.os == 'macOS'
+        env:
+          VERSION: ${{ matrix.version }}
+        run: ./recipes/php-check.sh build/php/stage "$VERSION"
+      - name: Check in Linux systems with no build tools
+        if: runner.os == 'Linux'
+        env:
+          VERSION: ${{ matrix.version }}
+        run: |
+          status=0
+          mounts=(-v "$PWD/recipes:/check/recipes:ro" -v "$PWD/build/php/stage:/check/stage:ro")
+          for image in ubuntu:22.04 debian:12; do
+            echo "::group::$image"
+            docker run --rm --user 1000:1000 -e HOME=/tmp -e TMPDIR=/tmp "${mounts[@]}" \
+              "$image" bash /check/recipes/php-check.sh /check/stage "$VERSION" || { status=1; echo "::error::$image failed"; }
+            echo "::endgroup::"
+          done
+          # Our Nginx build needs libcrypt.so.1, which bare Fedora doesn't have. That's about Nginx,
+          # not PHP, so it's added here.
+          echo "::group::fedora:latest"
+          docker run --rm -e HOME=/tmp -e TMPDIR=/tmp "${mounts[@]}" fedora:latest bash -c \
+            "dnf install -y -q libxcrypt-compat util-linux && setpriv --reuid=1000 --regid=1000 --clear-groups bash /check/recipes/php-check.sh /check/stage $VERSION" \
+            || { status=1; echo "::error::fedora failed"; }
+          echo "::endgroup::"
+          exit $status
+      - name: Add to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ matrix.version }}
+        run: gh release upload "php-$VERSION" dist/* --clobber
+      - name: Show the build log
+        if: failure()
+        run: tail -n 60 build/php/spc/log/* 2>/dev/null || true

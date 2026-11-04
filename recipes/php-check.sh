@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Phase 0 of our own PHP builds: does the result work somewhere with no build tools? Takes the folder
-# php-test-build.sh made. Only needs bash, so it can run in a bare container as an ordinary user.
+# Does a PHP build work somewhere with no build tools? Takes the folder build-php.sh made, and the
+# version it should be. Only needs bash, so it can run in a bare container as an ordinary user.
 source "$(dirname "$0")/lib.sh"
 
 SOURCE="$1"
+EXPECTED_VERSION="$2"
 # A space in the path, as macOS's Application Support has.
 BASE="$(mktemp -d)/smoke test"
 mkdir -p "$BASE/site" "$BASE/run"
@@ -68,7 +69,7 @@ echo
 cat > "$BASE/site/index.php" <<'PHP'
 <?php
 echo 'php=', PHP_VERSION, "\n";
-foreach (['mbstring', 'intl', 'gd', 'curl', 'pdo_pgsql', 'pdo_mysql', 'sodium', 'zip', 'xdebug', 'redis', 'imagick'] as $name) {
+foreach (['mbstring', 'intl', 'gd', 'curl', 'pdo_pgsql', 'pdo_mysql', 'sodium', 'zip', 'xdebug', 'redis', 'imagick', 'mysqli'] as $name) {
     echo $name, '=', extension_loaded($name) ? 'yes' : 'no', "\n";
 }
 echo 'opcache=', (function_exists('opcache_get_status') && opcache_get_status(false)) ? 'yes' : 'no', "\n";
@@ -156,7 +157,8 @@ trap 'kill "$NGINX_PID" "$FPM_PID" 2>/dev/null || true' EXIT
 start_fpm
 REPLY_ON="$(page)"
 echo "$REPLY_ON"
-for wanted in mbstring=yes intl=yes gd=yes curl=yes pdo_pgsql=yes pdo_mysql=yes sodium=yes zip=yes xdebug=yes redis=yes imagick=yes imagick_works=yes opcache=yes gd_works=yes openssl=yes; do
+expect "$REPLY_ON" "php=$EXPECTED_VERSION"
+for wanted in mysqli=yes mbstring=yes intl=yes gd=yes curl=yes pdo_pgsql=yes pdo_mysql=yes sodium=yes zip=yes xdebug=yes redis=yes imagick=yes imagick_works=yes opcache=yes gd_works=yes openssl=yes; do
   expect "$REPLY_ON" "$wanted"
 done
 # Only ICU's real data formats this the French way, with a comma, and a special space before 234.
