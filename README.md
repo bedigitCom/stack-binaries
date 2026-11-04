@@ -9,7 +9,7 @@ Self-contained builds of open-source servers, used by [BeDigit Stack](https://be
 | MariaDB 12.3, 11.8, 11.4, 10.11 | GPL-2.0 | OpenSSL, zlib, PCRE2 |
 | Redis | AGPL-3.0 (one of the three licenses it offers) | Its own vendored libraries, without its optional modules |
 | Valkey | BSD-3-Clause | Its own vendored libraries |
-| PHP | PHP-3.01, or the BSD-3-Clause license from 8.5 | Built by [static-php-cli](https://github.com/crazywhalecc/static-php-cli). Each extension is its own file, with its libraries linked into it, and the source of everything is in the same release |
+| PHP | PHP-3.01 | Built by [static-php-cli](https://github.com/crazywhalecc/static-php-cli). Each extension is its own file, with its libraries linked into it, and the source of everything is in the same release |
 
 Apache httpd for Windows isn't built here. Its release is an unmodified copy of the [Apache Lounge](https://www.apachelounge.com/download/) build, along with its checksums and signature, published by the **Mirror Apache for Windows** workflow. That workflow refuses a file that doesn't match the checksum and signing key pinned in `recipes/versions.env`.
 
