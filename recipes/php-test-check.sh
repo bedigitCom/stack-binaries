@@ -68,7 +68,7 @@ echo
 cat > "$BASE/site/index.php" <<'PHP'
 <?php
 echo 'php=', PHP_VERSION, "\n";
-foreach (['mbstring', 'intl', 'gd', 'curl', 'pdo_pgsql', 'pdo_mysql', 'sodium', 'zip', 'xdebug', 'redis'] as $name) {
+foreach (['mbstring', 'intl', 'gd', 'curl', 'pdo_pgsql', 'pdo_mysql', 'sodium', 'zip', 'xdebug', 'redis', 'imagick'] as $name) {
     echo $name, '=', extension_loaded($name) ? 'yes' : 'no', "\n";
 }
 echo 'opcache=', (function_exists('opcache_get_status') && opcache_get_status(false)) ? 'yes' : 'no', "\n";
@@ -77,6 +77,12 @@ if (extension_loaded('intl')) {
 }
 if (extension_loaded('gd')) {
     echo 'gd_works=', imagecreatetruecolor(4, 4) ? 'yes' : 'no', "\n";
+}
+if (extension_loaded('imagick')) {
+    $image = new Imagick();
+    $image->newImage(8, 8, new ImagickPixel('red'));
+    $image->setImageFormat('png');
+    echo 'imagick_works=', strlen((string) $image) > 0 ? 'yes' : 'no', "\n";
 }
 echo 'openssl=', strlen(openssl_random_pseudo_bytes(8)) === 8 ? 'yes' : 'no', "\n";
 PHP
@@ -150,7 +156,7 @@ trap 'kill "$NGINX_PID" "$FPM_PID" 2>/dev/null || true' EXIT
 start_fpm
 REPLY_ON="$(page)"
 echo "$REPLY_ON"
-for wanted in mbstring=yes intl=yes gd=yes curl=yes pdo_pgsql=yes pdo_mysql=yes sodium=yes zip=yes xdebug=yes redis=yes opcache=yes gd_works=yes openssl=yes; do
+for wanted in mbstring=yes intl=yes gd=yes curl=yes pdo_pgsql=yes pdo_mysql=yes sodium=yes zip=yes xdebug=yes redis=yes imagick=yes imagick_works=yes opcache=yes gd_works=yes openssl=yes; do
   expect "$REPLY_ON" "$wanted"
 done
 # Only ICU's real data formats this the French way, with a comma, and a special space before 234.

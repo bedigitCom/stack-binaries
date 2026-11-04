@@ -6,7 +6,7 @@ source "$(dirname "$0")/lib.sh"
 # Stay in the base build: others need them, or Composer does.
 BUILT_IN="ctype,dom,filter,iconv,mysqlnd,openssl,pdo,phar,posix,session,simplexml,tokenizer,xml,xmlreader,xmlwriter,zlib"
 # What the app's checkboxes would offer.
-SEPARATE="bcmath,bz2,calendar,curl,exif,fileinfo,ftp,gd,gmp,intl,mbstring,mysqli,opcache,pcntl,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,redis,soap,sockets,sodium,sqlite3,xdebug,zip"
+SEPARATE="bcmath,bz2,calendar,curl,exif,fileinfo,ftp,gd,gmp,imagick,intl,mbstring,mysqli,opcache,pcntl,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,redis,soap,sockets,sodium,sqlite3,xdebug,zip"
 
 WORK="$ROOT/build/php-test"
 rm -rf "$WORK"
