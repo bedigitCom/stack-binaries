@@ -158,9 +158,7 @@ start_fpm
 REPLY_ON="$(page)"
 echo "$REPLY_ON"
 expect "$REPLY_ON" "php=$EXPECTED_VERSION"
-# PHP 8.1 has no current Xdebug. See build-php.sh.
-[[ "$EXPECTED_VERSION" != 8.1.* ]] && expect "$REPLY_ON" "xdebug=yes"
-for wanted in mysqli=yes mbstring=yes intl=yes gd=yes curl=yes pdo_pgsql=yes pdo_mysql=yes sodium=yes zip=yes redis=yes imagick=yes imagick_works=yes opcache=yes gd_works=yes openssl=yes; do
+for wanted in xdebug=yes mysqli=yes mbstring=yes intl=yes gd=yes curl=yes pdo_pgsql=yes pdo_mysql=yes sodium=yes zip=yes redis=yes imagick=yes imagick_works=yes opcache=yes gd_works=yes openssl=yes; do
   expect "$REPLY_ON" "$wanted"
 done
 # Only ICU's real data formats this the French way, with a comma, and a special space before 234.

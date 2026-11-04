@@ -12,8 +12,6 @@ BUILT_IN="ctype,dom,filter,iconv,mysqlnd,openssl,pdo,phar,posix,session,simplexm
 SEPARATE="bcmath,bz2,calendar,curl,exif,fileinfo,ftp,gd,gmp,imagick,intl,mbstring,mysqli,pcntl,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,redis,soap,sockets,sodium,sqlite3,xdebug,zip"
 # From PHP 8.5, OPcache is always part of PHP.
 [[ "$MINOR" != "8.5" ]] && SEPARATE="$SEPARATE,opcache"
-# Current Xdebug needs PHP 8.2 or newer, and 8.1 is past its end of life.
-[[ "$MINOR" == "8.1" ]] && SEPARATE="${SEPARATE/,xdebug/}"
 
 WORK="$ROOT/build/php"
 rm -rf "$WORK"
@@ -35,35 +33,6 @@ else
   bin/php bin/composer install --no-dev --no-interaction --quiet
   SPC=(bin/spc)
   "${SPC[@]}" doctor --auto-fix
-fi
-
-# On Linux, PHP 8.1's headers need system types that strict C17 hides.
-if [[ "$MINOR" == "8.1" && "$PLATFORM" == linux-* ]]; then
-  sed -i 's/-std=c17/-std=gnu17/' src/SPC/builder/extension/pgsql.php
-fi
-
-# On Intel Macs, the newer compiler refuses the old-style C in PHP 8.1's bcmath. static-php-cli has no
-# setting for one extension's flags, except through a class of its own, as its pgsql has.
-if [[ "$MINOR" == "8.1" && "$PLATFORM" == "darwin-x86_64" ]]; then
-  cat > src/SPC/builder/extension/bcmath.php <<'PHP'
-<?php
-
-declare(strict_types=1);
-
-namespace SPC\builder\extension;
-
-use SPC\builder\Extension;
-use SPC\util\CustomExt;
-
-#[CustomExt('bcmath')]
-class bcmath extends Extension
-{
-    protected function getExtraEnv(): array
-    {
-        return ['CFLAGS' => '-std=gnu17'];
-    }
-}
-PHP
 fi
 
 started=$SECONDS
