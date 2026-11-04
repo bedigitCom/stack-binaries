@@ -42,6 +42,11 @@ if [[ "$MINOR" == "8.1" && "$PLATFORM" == linux-* ]]; then
   sed -i 's/-std=c17/-std=gnu17/' src/SPC/builder/extension/pgsql.php
 fi
 
+# On Intel Macs, the newer compiler refuses the old-style C in PHP 8.1's bcmath.
+if [[ "$MINOR" == "8.1" && "$PLATFORM" == "darwin-x86_64" ]]; then
+  sed -i '' 's/-apple-darwin -Os"/-apple-darwin -Os -std=gnu17"/' config/env.ini
+fi
+
 started=$SECONDS
 "${SPC[@]}" download --with-php="$VERSION" --for-extensions="$BUILT_IN,$SEPARATE" --retry=3
 
