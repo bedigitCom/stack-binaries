@@ -16,9 +16,21 @@ pass() { echo "PASS: $1"; }
 fail() { echo "FAIL: $1"; FAILED=1; }
 
 echo "=== Linked libraries"
+# On top of what lib.sh expects from any system: every Linux desktop that can run the app already has
+# these, because its web view needs them. libutil comes with glibc.
 for binary in "$PHP" "$FPM" "$EXT"/*.so; do
-  ( assert_portable "$binary" ) || fail "$(basename "$binary") links something a customer might not have"
+  if [[ "$PLATFORM" == linux-* ]]; then
+    foreign="$(ldd "$binary" | awk '{print $1}' \
+      | grep -vE '^(linux-vdso|linux-gate|/lib.*/ld-linux|ld-linux|libc\.|libm\.|libdl\.|libpthread\.|librt\.|libcrypt\.|libresolv\.|libutil\.|libstdc\+\+\.|libgcc_s\.)' || true)"
+    missing="$(ldd "$binary" | grep 'not found' || true)"
+    if [[ -n "$foreign" || -n "$missing" ]]; then
+      fail "$(basename "$binary") links: $foreign $missing"
+    fi
+  else
+    ( assert_portable "$binary" ) || fail "$(basename "$binary") links something a customer might not have"
+  fi
 done
+pass "nothing links outside the operating system"
 
 write_ini() {
   local skip="${1:-}"
@@ -141,8 +153,8 @@ echo "$REPLY_ON"
 for wanted in mbstring=yes intl=yes gd=yes curl=yes pdo_pgsql=yes pdo_mysql=yes sodium=yes zip=yes xdebug=yes redis=yes opcache=yes gd_works=yes openssl=yes; do
   expect "$REPLY_ON" "$wanted"
 done
-# Only ICU's real data formats this the French way, with a comma.
-expect "$REPLY_ON" "1234,5"
+# Only ICU's real data formats this the French way, with a comma, and a special space before 234.
+expect "$REPLY_ON" "234,5"
 stop_fpm
 
 echo "=== Turning an extension off"
