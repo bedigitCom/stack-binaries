@@ -56,8 +56,7 @@ echo "Build took $(((SECONDS - started) / 60)) minutes"
 STAGE="$WORK/stage"
 mkdir -p "$STAGE/bin" "$STAGE/ext" "$STAGE/licenses"
 cp buildroot/bin/php buildroot/bin/php-fpm "$STAGE/bin/"
-find buildroot -name '*.so' -path '*extensions*' -exec cp {} "$STAGE/ext/" \;
-[[ -n "$(ls -A "$STAGE/ext")" ]] || { find buildroot -name '*.so' -print; echo "No extensions were built" >&2; exit 1; }
+cp buildroot/modules/*.so "$STAGE/ext/"
 cp -R buildroot/license/. "$STAGE/licenses/"
 [[ -n "$(ls -A "$STAGE/licenses")" ]] || { echo "No licenses were collected" >&2; exit 1; }
 for binary in "$STAGE"/bin/* "$STAGE"/ext/*.so; do
