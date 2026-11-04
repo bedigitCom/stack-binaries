@@ -35,6 +35,11 @@ else
   "${SPC[@]}" doctor --auto-fix
 fi
 
+# On Linux, PHP 8.1's headers need system types that strict C17 hides.
+if [[ "$MINOR" == "8.1" && "$PLATFORM" == linux-* ]]; then
+  sed -i 's/-std=c17/-std=gnu17/' src/SPC/builder/extension/pgsql.php
+fi
+
 started=$SECONDS
 "${SPC[@]}" download --with-php="$VERSION" --for-extensions="$BUILT_IN,$SEPARATE" --retry=3
 

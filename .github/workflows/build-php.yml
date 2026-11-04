@@ -9,6 +9,11 @@ on:
         description: 'A JSON list of exact versions, such as ["8.4.27"]'
         required: true
         type: string
+      runners:
+        description: A JSON list of runners, to rebuild only some platforms
+        required: true
+        type: string
+        default: '["macos-15-intel", "macos-14", "ubuntu-22.04", "ubuntu-22.04-arm"]'
 
 permissions:
   contents: read
@@ -44,7 +49,7 @@ jobs:
       matrix:
         version: ${{ fromJSON(inputs.versions) }}
         # Apple Silicon builds use macOS 14, because GitHub often leaves macos-15 jobs unassigned.
-        runner: [macos-15-intel, macos-14, ubuntu-22.04, ubuntu-22.04-arm]
+        runner: ${{ fromJSON(inputs.runners) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build
