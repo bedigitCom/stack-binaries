@@ -24,6 +24,7 @@ if [[ "$PLATFORM" == linux-* ]]; then
   SPC=(bin/spc-gnu-docker)
 else
   bin/setup-runtime
+  export PATH="$PWD/bin:$PATH"
   bin/php bin/composer install --no-dev --no-interaction --quiet
   SPC=(bin/spc)
   "${SPC[@]}" doctor --auto-fix
