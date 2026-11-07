@@ -53,6 +53,14 @@ write_ini() {
   } > "$BASE/php.ini"
 }
 
+echo "=== Every listed extension was built"
+# shellcheck source=recipes/php-extensions.env
+source "$(dirname "$0")/php-extensions.env"
+for name in $(php_separate_for "$EXPECTED_VERSION" | tr ',' ' '); do
+  [[ -f "$EXT/$name.so" ]] || fail "$name.so is missing"
+done
+pass "every separate extension in php-extensions.env has its file"
+
 echo "=== Every extension loads"
 write_ini
 env -i "$PHP" -c "$BASE/php.ini" -v
@@ -65,6 +73,11 @@ else
 fi
 echo "$MODULES" | tr '\n' ' '
 echo
+for name in $(echo "$PHP_BUILT_IN,$(php_separate_for "$EXPECTED_VERSION")" | tr ',' ' '); do
+  # PHP reports some with capitals, such as Phar, and OPcache as Zend OPcache.
+  grep -qiE "^(zend )?$name\$" <<<"$MODULES" || fail "$name isn't loaded"
+done
+pass "every extension in php-extensions.env is loaded"
 
 cat > "$BASE/site/index.php" <<'PHP'
 <?php
