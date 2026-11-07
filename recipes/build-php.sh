@@ -9,7 +9,7 @@ MINOR="${VERSION%.*}"
 # Stay in the base build: others need them, or Composer does.
 BUILT_IN="ctype,dom,filter,iconv,mysqlnd,openssl,pdo,phar,posix,session,simplexml,tokenizer,xml,xmlreader,xmlwriter,zlib"
 # What the app's checkboxes offer.
-SEPARATE="bcmath,bz2,calendar,curl,exif,fileinfo,ftp,gd,gmp,imagick,intl,mbstring,mysqli,pcntl,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,redis,soap,sockets,sodium,sqlite3,xdebug,zip"
+SEPARATE="bcmath,bz2,calendar,curl,exif,fileinfo,ftp,gd,gmp,imagick,intl,mbstring,mysqli,pcntl,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,redis,soap,sockets,sodium,sqlite3,ssh2,xdebug,zip"
 # From PHP 8.5, OPcache is always part of PHP.
 [[ "$MINOR" != "8.5" ]] && SEPARATE="$SEPARATE,opcache"
 

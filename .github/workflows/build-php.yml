@@ -13,10 +13,18 @@ on:
         description: A JSON list of runners, to rebuild only some platforms
         required: true
         type: string
-        default: '["macos-15-intel", "macos-14", "ubuntu-22.04", "ubuntu-22.04-arm"]'
+        default: '["macos-15-intel", "macos-15", "ubuntu-22.04", "ubuntu-22.04-arm"]'
+      revision:
+        description: Above 1 for a new build of versions already released, such as one with more extensions. It goes in the release's tag, so the published files stay as they are
+        required: true
+        type: number
+        default: 1
 
 permissions:
   contents: read
+
+env:
+  SUFFIX: ${{ inputs.revision > 1 && format('-{0}', inputs.revision) || '' }}
 
 jobs:
   drafts:
@@ -31,8 +39,8 @@ jobs:
           VERSIONS: ${{ inputs.versions }}
         run: |
           for version in $(jq -r '.[]' <<<"$VERSIONS"); do
-            if ! gh release view "php-$version" > /dev/null 2>&1; then
-              gh release create "php-$version" --draft --title "PHP $version" \
+            if ! gh release view "php-$version$SUFFIX" > /dev/null 2>&1; then
+              gh release create "php-$version$SUFFIX" --draft --title "PHP $version$SUFFIX" \
                 --notes "Built by static-php-cli from recipes/build-php.sh at $GITHUB_SHA. Licenses are inside each archive, and the source of everything inside is in this release."
             fi
           done
@@ -48,7 +56,6 @@ jobs:
       fail-fast: false
       matrix:
         version: ${{ fromJSON(inputs.versions) }}
-        # Apple Silicon builds use macOS 14, because GitHub often leaves macos-15 jobs unassigned.
         runner: ${{ fromJSON(inputs.runners) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -89,7 +96,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ matrix.version }}
-        run: gh release upload "php-$VERSION" dist/* --clobber
+        # Never into a published release, whose files the app's manifest pins by checksum.
+        run: |
+          if [[ "$(gh release view "php-$VERSION$SUFFIX" --json isDraft --jq .isDraft)" != true ]]; then
+            echo "::error::php-$VERSION$SUFFIX is already published. Build with a higher revision."
+            exit 1
+          fi
+          gh release upload "php-$VERSION$SUFFIX" dist/* --clobber
       - name: Show the build log
         if: failure()
         run: tail -n 60 build/php/spc/log/* 2>/dev/null || true
