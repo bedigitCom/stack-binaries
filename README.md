@@ -37,6 +37,8 @@ The result lands in `dist/`. A build fails if the binary links a library that a 
 
 Run the **Build a component** workflow from the Actions tab, and turn on **publish** once the builds look right. Releases are tagged `<component>-<version>`, and the BeDigit Stack manifest pins each file by SHA-256.
 
+PHP has its own **Build PHP** workflow, which takes a list of exact versions and leaves a draft release for each, for the owner to publish. To rebuild a version already published, such as to add an extension, give a **revision** above 1: the release is then tagged `php-<version>-<revision>`, so the published files, which the manifest pins, never change. The workflow refuses to upload into a published release.
+
 For MariaDB, Redis and Valkey, test the build first, then run **Publish a build with its source** with that run's ID. It publishes those exact archives along with the source, which the GPL and AGPL call for.
 
 ## Update a source
